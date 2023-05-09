@@ -5,3 +5,11 @@ netty:
   default:
     allocator:
       max-order: 3
+processing:
+  system:
+    url: 'consumed.api.URL'
+recordings:
+  location: 'location of recorded calls'
+logger:
+  levels:
+    ROOT: DEBUG
