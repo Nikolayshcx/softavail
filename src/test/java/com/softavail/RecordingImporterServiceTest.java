@@ -44,9 +44,10 @@ class RecordingImporterServiceTest
     wireMockServer.start();
     WireMock.configureFor(PROC_SYSTEM_HOST, PROC_SYSTEM_PORT);
     wireMockServer.stubFor(post(urlEqualTo(RecordingImporterService.PROCESS_CALL))
+                               .withMultipartRequestBody(aMultipart())
                                .willReturn(aResponse().withStatus(202)
-                               .withHeader("Location",
-                                           uploadedLocation)));
+                                                      .withHeader("Location",
+                                                                  uploadedLocation)));
 
     String filename = "testRecording.wav";
     log.info("Generated filename - " + filename);
