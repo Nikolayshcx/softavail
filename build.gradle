@@ -1,0 +1,53 @@
+plugins {
+    id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("io.micronaut.application") version "3.7.9"
+}
+
+version = "0.1"
+group = "com.softavail"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    implementation("io.micronaut:micronaut-http-client")
+    implementation("io.micronaut:micronaut-jackson-databind")
+    implementation("jakarta.annotation:jakarta.annotation-api")
+    implementation("io.micronaut:micronaut-http-server-netty")
+    implementation("io.micronaut.reactor:micronaut-reactor")
+    implementation("org.slf4j:slf4j-api:2.0.7")
+    testImplementation("org.slf4j:slf4j-simple:2.0.7")
+    testRuntimeOnly("ch.qos.logback:logback-classic")
+
+    testImplementation("com.github.tomakehurst:wiremock:2.27.2")
+
+    // utilities
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor("io.micronaut:micronaut-http-validation")
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    compileOnly 'org.projectlombok:lombok'
+    testCompileOnly('org.projectlombok:lombok')
+}
+
+application {
+    mainClass.set("com.softavail.Application")
+}
+java {
+    sourceCompatibility = JavaVersion.toVersion("11")
+    targetCompatibility = JavaVersion.toVersion("11")
+}
+
+graalvmNative.toolchainDetection = false
+micronaut {
+    runtime("netty")
+    testRuntime("junit5")
+    processing {
+        incremental(true)
+        annotations("com.softavail.*")
+    }
+}
+
+
+
