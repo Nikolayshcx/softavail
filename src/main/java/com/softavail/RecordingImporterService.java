@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.softavail.model.RecordingMetadata;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpStatus;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
@@ -15,7 +15,6 @@ import jakarta.inject.Singleton;
 import reactor.core.publisher.Mono;
 
 import java.io.File;
-import java.nio.file.Files;
 
 @Singleton
 public class RecordingImporterService {
@@ -23,7 +22,7 @@ public class RecordingImporterService {
   private final HttpClient   processingSystemClient;
   private final ObjectWriter mapper;
   private final String recordingsLocation;
-  private final String       PROCESS_CALL = "/process";
+  public static final String       PROCESS_CALL = "/process";
 
   public RecordingImporterService(@Client("${processing.system.url}") HttpClient processingSystemClient,
                                   @Value("${recordings.location}") String recordingsLocation)
@@ -33,7 +32,13 @@ public class RecordingImporterService {
     this.mapper                 = new ObjectMapper().writer().withDefaultPrettyPrinter();
   }
 
-  public Mono<HttpStatus> processRecording(RecordingMetadata metadata){
+  /**
+   * Assemble a multipart/form-data request and send it to the processing system
+   * @param metadata the metadata of the recorded call
+   * @return the response of the processing system,
+   * including httpStatus and location header of the processed resource
+   */
+  public Mono<HttpResponse<?>> processRecording(RecordingMetadata metadata){
 
     String metadataJson;
     try {
@@ -48,9 +53,11 @@ public class RecordingImporterService {
                            .addPart("mediaFile",
                                     metadata.getFilename(),
                                     new MediaType("video/ogg"),
-                                    new File(recordingsLocation + metadata.getFilename()))
+                                    new File(recordingsLocation + File.separator + metadata.getFilename()))
                            .build();
 
-    return Mono.from(processingSystemClient.retrieve(HttpRequest.POST(PROCESS_CALL, request), HttpStatus.class));
+    return Mono.from(processingSystemClient.exchange(HttpRequest.POST(PROCESS_CALL, request)
+                                                                .contentType(MediaType.MULTIPART_FORM_DATA_TYPE),
+                                                     Void.class));
   }
 }

@@ -1,6 +1,5 @@
 package com.softavail.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import io.micronaut.core.annotation.Introspected;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -11,7 +10,8 @@ import lombok.experimental.FieldDefaults;
 import reactor.util.annotation.NonNull;
 
 import javax.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
+import javax.validation.constraints.Size;
+import java.util.Date;
 
 @Data
 @AllArgsConstructor
@@ -21,15 +21,16 @@ import java.time.LocalDateTime;
 @Introspected
 public class RecordingMetadata {
     @NotBlank
-    String filename;
+    String  filename;
     @NotBlank
-    String callId;
+    @Size(max = 18, min = 18)
+    String  callId;
     @NonNull
     Long from;
     @NonNull
-    Long to;
+    Long    to;
     @NonNull
-    LocalDateTime started;
+    Date    started;
     @NonNull
     Integer duration;
 }
