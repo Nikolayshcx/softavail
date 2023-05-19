@@ -53,7 +53,8 @@ class RecordingImporterServiceTest
     createTestRecording(filename);
 
     recImporterService = new RecordingImporterService(HttpClient.create(new URL(PROC_SYSTEM_HOST + ":" + PROC_SYSTEM_PORT)),
-                                                      testRecordingsLocation);
+                                                      testRecordingsLocation,
+                                                      1000);
   }
 
   @Test

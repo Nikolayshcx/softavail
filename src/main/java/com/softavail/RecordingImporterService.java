@@ -3,6 +3,7 @@ package com.softavail;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.softavail.error.exceptions.RecordingTooLargeException;
 import com.softavail.model.RecordingMetadata;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpRequest;
@@ -31,12 +32,16 @@ public class RecordingImporterService {
   private final ObjectWriter mapper;
   private final String recordingsLocation;
   public static final String       PROCESS_CALL = "/process";
+  private final int maxRecordingSize;
 
   public RecordingImporterService(@Client("${processing.system.url}") HttpClient processingSystemClient,
-                                  @Value("${recordings.location}") String recordingsLocation)
+                                  @Value("${recordings.location}") String recordingsLocation,
+                                  @Value("${recordings.max-file-size-MB}") int maxRecordingSize
+                                  )
   {
     this.processingSystemClient = processingSystemClient;
     this.recordingsLocation     = recordingsLocation;
+    this.maxRecordingSize = maxRecordingSize;
     this.mapper                 = new ObjectMapper().writer().withDefaultPrettyPrinter();
   }
 
@@ -56,9 +61,15 @@ public class RecordingImporterService {
       return Mono.error(e);
     }
     Path filePath = Path.of(recordingsLocation + File.separator + metadata.getFilename());
+    if(!filePath.toFile().exists()) return Mono.error(new FileNotFoundException("File with given name " + filePath.getFileName() + ", doesn't "
+                                                                           + "exist in recordings location!"));
 
     return Mono.fromCallable(()->Files.size(filePath))
                .subscribeOn(Schedulers.boundedElastic())
+               .flatMap(fileSize -> (fileSize / 1048576) <= maxRecordingSize
+                                    ? Mono.just(fileSize)
+                                    : Mono.error(new RecordingTooLargeException("Streaming files bigger than "
+                                                                                + maxRecordingSize + "MB, is not allowed!")))
                .map(contentSize-> {
                  try {
                    return MultipartBody.builder()
