@@ -20,7 +20,6 @@ import reactor.core.scheduler.Schedulers;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -47,7 +46,7 @@ public class RecordingImporterService {
    * @return the response of the processing system,
    * including httpStatus and location header of the processed resource
    */
-  public Publisher<HttpResponse<Void>> processRecording(RecordingMetadata metadata) throws IOException
+  public Publisher<HttpResponse<Void>> processRecording(RecordingMetadata metadata)
   {
     String metadataJson;
     try {

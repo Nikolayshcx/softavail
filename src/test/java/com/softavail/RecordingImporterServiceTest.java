@@ -3,16 +3,13 @@ package com.softavail;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.softavail.model.RecordingMetadata;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
-import lombok.extern.java.Log;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.io.File;
@@ -21,7 +18,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Instant;
 import java.util.Date;
-import java.util.logging.Level;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,7 +57,7 @@ class RecordingImporterServiceTest
   }
 
   @Test
-  void processRecording() throws IOException
+  void processRecording()
   {
     StepVerifier.create(recImporterService.processRecording(new RecordingMetadata().setFilename(recording.getName())
                                                                                    .setCallId("test_call_id")

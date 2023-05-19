@@ -8,7 +8,6 @@ import io.micronaut.http.annotation.Post;
 import org.reactivestreams.Publisher;
 
 import javax.validation.Valid;
-import java.io.IOException;
 
 @Controller("/importer")
 public class RecordingImporterController {
@@ -18,7 +17,7 @@ public class RecordingImporterController {
                                       ) {this.recordingImporterService = recordingImporterService;}
 
     @Post("/recording")
-    public Publisher<HttpResponse<Void>> sendRecording(@Body @Valid RecordingMetadata metadata) throws IOException
+    public Publisher<HttpResponse<Void>> sendRecording(@Body @Valid RecordingMetadata metadata)
     {
         return recordingImporterService.processRecording(metadata);
     }
