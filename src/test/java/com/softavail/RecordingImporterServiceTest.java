@@ -7,10 +7,13 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
 import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +27,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@Log
+@Log4j2
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class RecordingImporterServiceTest
 {
@@ -58,25 +61,26 @@ class RecordingImporterServiceTest
   }
 
   @Test
-  void processRecording()
+  void processRecording() throws IOException
   {
-    HttpResponse<?> response =
-    recImporterService.processRecording(new RecordingMetadata().setFilename(recording.getName())
-                                                               .setCallId("test_call_id")
-                                                               .setFrom(111111111111L)
-                                                               .setTo(222222222222L)
-                                                               .setStarted(Date.from(Instant.now()))
-                                                               .setDuration(120))
-                      .block();
-
-    assertNotNull(response.getStatus());
-    assertEquals(HttpStatus.ACCEPTED, response.getStatus());
-    assertNotNull(response.getHeaders().get("Location"));
-    assertEquals(uploadedLocation, response.getHeaders().get("Location"));
-
-    log.info("Received response - status [" + response.getStatus() + "]"
-             + ", headers [" + response.getHeaders().asMap() + "]"
-             + ", body [" + (response.getBody().isPresent() ? response.getBody().get() : "null") + "]");
+    StepVerifier.create(recImporterService.processRecording(new RecordingMetadata().setFilename(recording.getName())
+                                                                                   .setCallId("test_call_id")
+                                                                                   .setFrom(111111111111L)
+                                                                                   .setTo(222222222222L)
+                                                                                   .setStarted(Date.from(Instant.now()))
+                                                                                   .setDuration(120)))
+        .expectNextMatches(s -> {
+          assertNotNull(s.getStatus());
+          assertEquals(HttpStatus.ACCEPTED, s.getStatus());
+          assertNotNull(s.getHeaders().get("Location"));
+          assertEquals(uploadedLocation, s.getHeaders().get("Location"));
+          log.info("Received response - status [" + s.getStatus() + "]"
+                   + ", headers [" + s.getHeaders().asMap() + "]"
+                   + ", body [" + (s.getBody().isPresent() ? s.getBody().get() : "null") + "]");
+          return true;
+        })
+        .expectComplete()
+        .verify();
   }
 
   @AfterEach
@@ -93,7 +97,7 @@ class RecordingImporterServiceTest
       if(! recording.getParentFile().exists()) recording.getParentFile().mkdirs();
 
       while (!recording.createNewFile() && !recording.exists()){
-        log.log(Level.FINE, "File with name - [" + filename + "], already exists. Generating new test filename.");
+        log.info( "File with name - [" + filename + "], already exists. Generating new test filename.");
 
         recording.delete();
         filename  = RandomStringUtils.random(16) + ".wav";
@@ -101,7 +105,7 @@ class RecordingImporterServiceTest
       }
     }
     catch (IOException e) {
-      log.log(Level.SEVERE,"Couldn't create test recording!");
+      log.error("Couldn't create test recording!");
       throw new RuntimeException(e);
     }
   }

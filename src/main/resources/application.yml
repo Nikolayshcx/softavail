@@ -1,15 +1,22 @@
 micronaut:
   application:
     name: recimporter
+  http:
+    client:
+      log-level: trace
+  server:
+    multipart:
+      max-file-size: 1048576000
 netty:
   default:
     allocator:
       max-order: 3
 processing:
   system:
-    url: 'consumed.api.URL'
+    url: 'http://localhost:8083/consumer'
 recordings:
-  location: 'location of recorded calls'
+  location: 'recordedCalls'
+  max-file-size-MB: 1000
 logger:
   levels:
-    ROOT: DEBUG
+    ROOT: TRACE

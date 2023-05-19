@@ -12,13 +12,20 @@ import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.multipart.MultipartBody;
 import jakarta.inject.Singleton;
-import org.javaync.io.AsyncFiles;
+import lombok.extern.log4j.Log4j2;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Singleton
+@Log4j2
 public class RecordingImporterService {
 
   private final HttpClient   processingSystemClient;
@@ -40,9 +47,8 @@ public class RecordingImporterService {
    * @return the response of the processing system,
    * including httpStatus and location header of the processed resource
    */
-  public Mono<HttpResponse<?>> processRecording(RecordingMetadata metadata)
+  public Publisher<HttpResponse<Void>> processRecording(RecordingMetadata metadata) throws IOException
   {
-
     String metadataJson;
     try {
       metadataJson = mapper.writeValueAsString(metadata);
@@ -50,16 +56,26 @@ public class RecordingImporterService {
     catch (JsonProcessingException e) {
       return Mono.error(e);
     }
+    Path filePath = Path.of(recordingsLocation + File.separator + metadata.getFilename());
 
-    return Mono.fromFuture(AsyncFiles.readAllBytes(recordingsLocation + File.separator + metadata.getFilename()))
-               .publishOn(Schedulers.boundedElastic())
-               .map(fileBytes -> MultipartBody.builder()
-                                              .addPart("metadata", metadataJson)
-                                              .addPart("mediaFile", metadata.getFilename(),
-                                                       new MediaType("video/ogg"), fileBytes)
-                                              .build())
-               .flatMap(request -> Mono.from(processingSystemClient.exchange(HttpRequest.POST(PROCESS_CALL, request)
-                                                                                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE),
-                                                                             Void.class)));
+    return Mono.fromCallable(()->Files.size(filePath))
+               .subscribeOn(Schedulers.boundedElastic())
+               .map(contentSize-> {
+                 try {
+                   return MultipartBody.builder()
+                                       .addPart("metadata", metadataJson)
+                                       .addPart("mediaFile", metadata.getFilename(), new MediaType("video/ogg"),
+                                                new FileInputStream(filePath.toFile()), contentSize)
+                                       .build();
+                 }
+                 catch (FileNotFoundException e) {
+                   throw new RuntimeException(e);
+                 }
+               })
+               .flatMapMany(requestBody->
+                                processingSystemClient.exchange(
+                                    HttpRequest.POST(PROCESS_CALL, requestBody)
+                                               .contentType(MediaType.MULTIPART_FORM_DATA_TYPE),
+                                    Void.class));
   }
 }
